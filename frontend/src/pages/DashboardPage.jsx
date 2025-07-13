@@ -1,11 +1,14 @@
 import React from 'react';
+import DebtGoalForm from '../components/DebtGoalForm'; 
 
 function DashboardPage() {
   return (
     <div>
       <h1>Dashboard</h1>
       <p>Bem-vindo ao seu painel principal!</p>
-      {/* Esta será a página principal do seu SaaS após o login */}
+      <hr />
+      { }
+      <DebtGoalForm />
     </div>
   );
 }
