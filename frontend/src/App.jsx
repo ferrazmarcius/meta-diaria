@@ -1,35 +1,37 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// frontend/src/App.jsx
+
+import { Routes, Route, Link } from 'react-router-dom';
+
+// Importando nossas novas páginas
+import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div>
+      {/* Criamos um menu de navegação simples para teste */}
+      <nav>
+        <Link to="/register">Registrar</Link> |{' '}
+        <Link to="/login">Login</Link> |{' '}
+        <Link to="/">Dashboard</Link>
+      </nav>
+
+      <hr />
+
+      {/* Esta é a área mágica onde o roteador irá renderizar a página correta */}
+      <Routes>
+        {/* Quando a URL for /register, mostre o componente RegisterPage */}
+        <Route path="/register" element={<RegisterPage />} />
+
+        {/* Quando a URL for /login, mostre o componente LoginPage */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Quando a URL for a raiz "/", mostre o componente DashboardPage */}
+        <Route path="/" element={<DashboardPage />} />
+      </Routes>
+    </div>
   )
 }
 
-export default App
+export default App;
