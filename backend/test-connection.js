@@ -3,7 +3,7 @@ require('dotenv').config();
 
 console.log('--- EXECUTANDO SCRIPT DE TESTE DE CONEXÃO ISOLADO ---');
 
-// Usamos as mesmas variáveis de ambiente do nosso .env
+// Usa as mesmas variáveis de ambiente do nosso .env
 const client = new Client({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,

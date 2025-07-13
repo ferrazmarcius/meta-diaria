@@ -5,7 +5,7 @@ import { Navigate } from 'react-router-dom';
 // Ele recebe uma propriedade chamada 'children'.
 // 'children' será o componente que ele está protegendo (no nosso caso, a DashboardPage).
 const ProtectedRoute = ({ children }) => {
-  // Verificamos no localStorage se o nosso token existe.
+  // Verifica no localStorage se o nosso token existe.
   const token = localStorage.getItem('token');
 
   // Se NÃO houver token...

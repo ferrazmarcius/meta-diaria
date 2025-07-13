@@ -15,7 +15,7 @@ const DebtGoalForm = ({ onGoalSet }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Pensa-alto: Primeiro, pegamos o token que guardamos no localStorage durante o login.
+    // Primeiro, pega o token que foi guardado no localStorage durante o login.
     const token = localStorage.getItem('token');
 
     if (!token) {
@@ -24,23 +24,22 @@ const DebtGoalForm = ({ onGoalSet }) => {
     }
 
     try {
-      // Pensa-alto: Criamos um objeto de configuração para o axios,
-      // adicionando o cabeçalho 'Authorization' com o nosso token no formato Bearer.
-      // É assim que nosso back-end saberá quem está fazendo o pedido.
+      // Cria um objeto de configuração para o axios,
+      // adicionando o cabeçalho 'Authorization' com o token no formato Bearer.
       const config = {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       };
 
-      // Pensa-alto: Enviamos a requisição POST para a nossa API de 'debts', passando
+      // Envia a requisição POST para a nossa API de 'debts', passa
       // os dados do formulário (formData) e o objeto de configuração com o token (config).
       const response = await axios.post('http://localhost:3001/api/debts', formData, config);
       
       console.log("Meta criada com sucesso:", response.data);
       alert("Sua meta foi salva com sucesso!");
 
-      // No futuro, usaremos isso para avisar a página do Dashboard que a meta foi criada.
+      // No futuro, usarei isso para avisar a página do Dashboard que a meta foi criada.
       if (onGoalSet) {
         onGoalSet(response.data);
       }

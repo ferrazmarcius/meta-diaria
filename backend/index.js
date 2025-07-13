@@ -22,7 +22,7 @@ const pool = new Pool({
 
 // Rota de registro de usuário ATUALIZADA
 app.post('/api/users/register', async (req, res) => {
-  // 1. Agora também pegamos o 'name' do corpo da requisição
+  // 1. Agora também pega o 'name' do corpo da requisição
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
@@ -30,14 +30,13 @@ app.post('/api/users/register', async (req, res) => {
   try {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
-    // 2. Adicionamos 'name' à query SQL e aos parâmetros
+    // 2. Adiciona 'name' à query SQL e aos parâmetros
     const newUser = await pool.query(
       "INSERT INTO public.users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email, created_at",
       [name, email, passwordHash]
     );
     res.status(201).json(newUser.rows[0]);
   } catch (error) {
-    // ...código de erro permanece o mesmo...
     if (error.code === '23505') { /* ... */ }
     console.error('Erro na rota de registro:', error);
     res.status(500).send('Erro no servidor ao tentar registrar usuário.');
@@ -72,7 +71,7 @@ app.post('/api/users/login', async (req, res) => {
 // Rota de perfil (protegida) ATUALIZADA
 app.get('/api/profile', authMiddleware, async (req, res) => {
   try {
-    // 1. Adicionamos 'name' na lista de colunas a serem selecionadas
+    // 1. Adicionam 'name' na lista de colunas a serem selecionadas
     const user = await pool.query("SELECT id, name, email, created_at FROM public.users WHERE id = $1", [req.user.id]);
 
     if (user.rows.length === 0) {
@@ -119,7 +118,7 @@ app.post('/api/incomes', authMiddleware, async (req, res) => {
   }
 
   try {
-    // Pensa-alto: Verificação de segurança crucial!
+    // Verificação de segurança crucial!
     // Antes de inserir o ganho, checamos se a meta (debt_id) realmente pertence ao usuário (userId)
     // que está fazendo a requisição. Isso impede que um usuário adicione ganhos à meta de outro.
     const debtCheck = await pool.query(
@@ -131,7 +130,7 @@ app.post('/api/incomes', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado. Esta meta não pertence a você.' });
     }
 
-    // Se a checagem passou, inserimos a nova renda na tabela 'incomes'.
+    // Se a checagem passou, insere a nova renda na tabela 'incomes'.
     const newIncome = await pool.query(
       "INSERT INTO public.incomes (amount, source, debt_id) VALUES ($1, $2, $3) RETURNING *",
       [amount, source, debt_id]
@@ -174,11 +173,11 @@ app.get('/api/debts/my-active-goal', authMiddleware, async (req, res) => {
 });
 
 // ===== ROTA PARA BUSCAR TODOS OS GANHOS DE UMA META =====
-// Pensa-alto: Usamos ':debtId' como um "parâmetro de rota". Isso significa que a URL
+// Usa-se ':debtId' como um "parâmetro de rota". Isso significa que a URL
 // terá o ID da dívida, como /api/incomes/8.
 app.get('/api/incomes/:debtId', authMiddleware, async (req, res) => {
   const userId = req.user.id;
-  // Pegamos o ID da dívida que veio como parâmetro na URL.
+  // Pega o ID da dívida que veio como parâmetro na URL.
   const { debtId } = req.params;
 
   try {
@@ -192,7 +191,7 @@ app.get('/api/incomes/:debtId', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado. Esta meta não pertence a você.' });
     }
 
-    // Se a checagem passar, buscamos todos os ganhos associados a essa meta,
+    // Se a checagem passar, busca todos os ganhos associados a essa meta,
     // ordenados do mais recente para o mais antigo.
     const incomesResult = await pool.query(
       "SELECT * FROM public.incomes WHERE debt_id = $1 ORDER BY created_at DESC",

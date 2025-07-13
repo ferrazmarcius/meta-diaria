@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // 1. Importam o hook para navegação
+import { useNavigate } from 'react-router-dom'; // 1. Importa o hook para navegação
 
 function LoginPage() {
   const [formData, setFormData] = useState({

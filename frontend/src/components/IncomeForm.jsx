@@ -28,7 +28,7 @@ const IncomeForm = ({ debtId, onIncomeAdded }) => {
         headers: { 'Authorization': `Bearer ${token}` }
       };
 
-      // Pensa-alto: Criamos o corpo da requisição juntando os dados do formulário
+      // Cria o corpo da requisição juntando os dados do formulário
       // com o debtId que recebemos da página do Dashboard.
       const body = { ...formData, debt_id: debtId };
 

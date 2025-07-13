@@ -2,7 +2,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
-import ProtectedRoute from './components/ProtectedRoute'; // Importamos nosso segurança
+import ProtectedRoute from './components/ProtectedRoute'; // Importa nosso "segurança"
 
 function App() {
   return (

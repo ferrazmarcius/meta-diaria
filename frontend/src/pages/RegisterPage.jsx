@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 function RegisterPage() {
   const [formData, setFormData] = useState({
-    name: '', // 1. Adicionamos o campo 'name' ao nosso estado inicial
+    name: '', // 1. Adiciona o campo 'name' ao nosso estado inicial
     email: '',
     password: '',
   });
@@ -32,7 +32,7 @@ function RegisterPage() {
     <div>
       <h1>Página de Registro</h1>
       <form onSubmit={handleSubmit}>
-        {/* 2. Adicionamos o campo de input para o Nome */}
+        {/* 2. Adiciona o campo de input para o Nome */}
         <div>
           <label htmlFor="name">Nome:</label>
           <input

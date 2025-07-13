@@ -46,7 +46,7 @@ function DashboardPage() {
 
   // 3. Esta função será chamada pelo IncomeForm quando um novo ganho for adicionado
   const handleIncomeAdded = (newIncome) => {
-    // Adicionamos o novo ganho à nossa lista de ganhos no estado,
+    // Adiciona o novo ganho à nossa lista de ganhos no estado,
     // fazendo com que a tela se atualize instantaneamente!
     setIncomes([newIncome, ...incomes]);
   };
