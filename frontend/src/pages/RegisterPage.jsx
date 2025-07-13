@@ -1,41 +1,29 @@
-import React, { useState } from 'react'; // 1. Importando o useState do React
-import axios from 'axios';                   // 2. Importando o axios para falar com a API
+import React, { useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function RegisterPage() {
-  // 3. Criando um "estado" para guardar os dados do formulário
-  // formData é um objeto que guarda os valores. setFormData é a função para atualizá-los.
   const [formData, setFormData] = useState({
+    name: '', // 1. Adicionamos o campo 'name' ao nosso estado inicial
     email: '',
     password: '',
   });
 
-  // 4. Função para lidar com a mudança nos campos de input
-  // Esta função é chamada toda vez que o usuário digita algo.
+  const navigate = useNavigate();
+
   const handleChange = (e) => {
-    // Ela atualiza o estado 'formData' com o novo valor do campo que foi modificado.
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 5. Função para lidar com o envio do formulário
-  // Esta função é chamada quando o usuário clica no botão "Registrar".
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Impede o recarregamento padrão da página ao submeter.
-
+    e.preventDefault();
     try {
-      // 6. Faz a chamada para a API usando axios
-      // axios.post envia os dados do estado 'formData'
-      // para a rota de registro do backend.
-      const response = await axios.post('http://localhost:3001/api/users/register', formData);
-
-      // 7. Lida com a resposta de sucesso
-      console.log('Resposta do registro:', response.data);
-      alert('Usuário registrado com sucesso!');
-      // No futuro, aqui redirecionará o usuário para a página de login.
-
+      // A chamada para a API agora enviará o objeto completo, incluindo o nome
+      await axios.post('http://localhost:3001/api/users/register', formData);
+      alert('Usuário registrado com sucesso! Você será redirecionado para o login.');
+      navigate('/login');
     } catch (error) {
-      // 8. Lidando com a resposta de erro:
       console.error('Erro no registro:', error.response.data);
-      // Mostra a mensagem de erro que a API enviou (ex: "Este email já está cadastrado.")
       alert(`Erro no registro: ${error.response.data.error || 'Erro desconhecido'}`);
     }
   };
@@ -43,14 +31,25 @@ function RegisterPage() {
   return (
     <div>
       <h1>Página de Registro</h1>
-      {/* 9. Nosso formulário em JSX */}
       <form onSubmit={handleSubmit}>
+        {/* 2. Adicionamos o campo de input para o Nome */}
+        <div>
+          <label htmlFor="name">Nome:</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
         <div>
           <label htmlFor="email">Email:</label>
           <input
             type="email"
             id="email"
-            name="email" // O 'name' tem que ser igual à chave no estado formData
+            name="email"
             value={formData.email}
             onChange={handleChange}
             required
@@ -61,7 +60,7 @@ function RegisterPage() {
           <input
             type="password"
             id="password"
-            name="password" // O 'name' tem que ser igual à chave no estado formData
+            name="password"
             value={formData.password}
             onChange={handleChange}
             required
