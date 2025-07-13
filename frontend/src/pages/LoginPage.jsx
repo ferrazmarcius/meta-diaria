@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // 1. Importa o hook para navegação
+import api from '../api'; // Correto! Já está usando nossa API central.
+import { useNavigate } from 'react-router-dom';
 
 function LoginPage() {
   const [formData, setFormData] = useState({
@@ -8,7 +8,7 @@ function LoginPage() {
     password: '',
   });
 
-  const navigate = useNavigate(); // 2. Inicializa o hook para poder usá-lo
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,21 +17,17 @@ function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Chama a rota de login que foi criada no back-end
-      const response = await axios.post('http://localhost:3001/api/users/login', formData);
+      // ===== A ÚNICA MUDANÇA É AQUI =====
+      // Corrigimos o endpoint para chamar a rota de login
+      const response = await api.post('/users/login', formData);
 
-      // O back-end retorna um objeto com a chave 'token' se o login for bem-sucedido
       const { token } = response.data;
 
       console.log('Token recebido do login:', token);
       alert('Login realizado com sucesso!');
 
-      // 3. Salva o token no localStorage do navegador.
-      // localStorage é como uma "caixinha de armazenamento" simples do navegador.
-      // É uma forma de "lembrar" do token entre as páginas.
       localStorage.setItem('token', token);
 
-      // 4. Redireciona o usuário para a página do Dashboard (a rota "/") após o login
       navigate('/');
 
     } catch (error) {

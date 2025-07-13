@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 const DebtGoalForm = ({ onGoalSet }) => {
   const [formData, setFormData] = useState({
@@ -24,7 +24,7 @@ const DebtGoalForm = ({ onGoalSet }) => {
     }
 
     try {
-      // Cria um objeto de configuração para o axios,
+      // Cria um objeto de configuração para a api,
       // adicionando o cabeçalho 'Authorization' com o token no formato Bearer.
       const config = {
         headers: {
@@ -34,7 +34,7 @@ const DebtGoalForm = ({ onGoalSet }) => {
 
       // Envia a requisição POST para a nossa API de 'debts', passa
       // os dados do formulário (formData) e o objeto de configuração com o token (config).
-      const response = await axios.post('http://localhost:3001/api/debts', formData, config);
+      const response = await api.post('/debts', formData, config);
       
       console.log("Meta criada com sucesso:", response.data);
       alert("Sua meta foi salva com sucesso!");

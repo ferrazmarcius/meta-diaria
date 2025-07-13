@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../api'; // Garantindo que a importação está correta
 
 const IncomeForm = ({ debtId, onIncomeAdded }) => {
   const [formData, setFormData] = useState({
@@ -27,15 +27,14 @@ const IncomeForm = ({ debtId, onIncomeAdded }) => {
       const config = {
         headers: { 'Authorization': `Bearer ${token}` }
       };
-
-      // Cria o corpo da requisição juntando os dados do formulário
-      // com o debtId que recebemos da página do Dashboard.
+      
       const body = { ...formData, debt_id: debtId };
 
-      const response = await axios.post('http://localhost:3001/api/incomes', body, config);
+      // ===== A ÚNICA MUDANÇA É AQUI =====
+      const response = await api.post('/incomes', body, config);
 
       alert('Ganho registrado com sucesso!');
-      setFormData({ amount: '', source: '' }); // Limpa o formulário após o sucesso
+      setFormData({ amount: '', source: '' }); 
 
       if (onIncomeAdded) {
         onIncomeAdded(response.data);

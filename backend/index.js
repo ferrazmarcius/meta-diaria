@@ -9,8 +9,21 @@ require('dotenv').config();
 const app = express();
 const PORT = 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://app.zenfinanc.com.br', // Permite apenas o domínio específico
+}));
 app.use(express.json());
+
+app.use(express.json());
+
+// Rota "Health Check" para a raiz da API
+// Pensa-alto: Esta rota serve para verificações de saúde da plataforma de deploy.
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'API do Meta Diária está no ar e saudável!' 
+  });
+});
 
 const pool = new Pool({
   user: process.env.DB_USER,
