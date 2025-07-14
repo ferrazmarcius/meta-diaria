@@ -1,31 +1,36 @@
-const JWT = require('jsonwebtoken');
-const express = require('express');
-const { Pool } = require('pg');
-const bcrypt = require('bcryptjs');
-const cors = require('cors');
-const authMiddleware = require('./middleware/auth.js');
 require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { Pool } = require('pg');
+const authMiddleware = require('./middleware/auth.js');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+const HOST = '0.0.0.0';
 
-app.use(cors({
-  origin: 'https://app.zenfinanc.com.br', // Permite apenas o domínio específico
-}));
+const allowedOrigins = [
+  'https://zenfinanc.com',
+  'https://www.zenfinanc.com',
+  'https://app.zenfinanc.com'
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permite requisições sem 'origin' (ex: Insomnia, apps mobile) ou que estejam na lista.
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Acesso não permitido pela política de CORS'));
+    }
+  }
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
-app.use(express.json());
-
-// Rota "Health Check" para a raiz da API
-// Pensa-alto: Esta rota serve para verificações de saúde da plataforma de deploy.
-app.get('/', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
-    message: 'API do Meta Diária está no ar e saudável!' 
-  });
-});
-
-const pool = new Pool({
+const dbPool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_DATABASE,
@@ -33,47 +38,65 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// Rota de registro de usuário ATUALIZADA
+// Rota de verificação de saúde (Health Check) para o deploy.
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'API do Meta Diária está no ar!'
+  });
+});
+
 app.post('/api/users/register', async (req, res) => {
-  // 1. Agora também pega o 'name' do corpo da requisição
   const { name, email, password } = req.body;
+
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
   }
+
   try {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
-    // 2. Adiciona 'name' à query SQL e aos parâmetros
-    const newUser = await pool.query(
+
+    const result = await dbPool.query(
       "INSERT INTO public.users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email, created_at",
       [name, email, passwordHash]
     );
-    res.status(201).json(newUser.rows[0]);
+
+    const newUser = result.rows[0];
+    res.status(201).json(newUser);
   } catch (error) {
-    if (error.code === '23505') { /* ... */ }
+    if (error.code === '23505') { // Chave duplicada (email já existe)
+      return res.status(400).json({ error: 'Este email já está cadastrado.' });
+    }
     console.error('Erro na rota de registro:', error);
     res.status(500).send('Erro no servidor ao tentar registrar usuário.');
   }
 });
 
-// Rota de login de usuário
 app.post('/api/users/login', async (req, res) => {
   const { email, password } = req.body;
+
   if (!email || !password) {
     return res.status(400).json({ error: 'Email e senha são obrigatórios.' });
   }
+
   try {
-    const userResult = await pool.query("SELECT * FROM public.users WHERE email = $1", [email]);
-    if (userResult.rows.length === 0) {
+    const result = await dbPool.query("SELECT * FROM public.users WHERE email = $1", [email]);
+
+    if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Credenciais inválidas.' });
     }
-    const user = userResult.rows[0];
+
+    const user = result.rows[0];
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Credenciais inválidas.' });
     }
+
     const payload = { user: { id: user.id } };
-    const token = JWT.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
     res.json({ token });
   } catch (error) {
     console.error('Erro na rota de login:', error);
@@ -81,145 +104,101 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
-// Rota de perfil (protegida) ATUALIZADA
 app.get('/api/profile', authMiddleware, async (req, res) => {
   try {
-    // 1. Adicionam 'name' na lista de colunas a serem selecionadas
-    const user = await pool.query("SELECT id, name, email, created_at FROM public.users WHERE id = $1", [req.user.id]);
+    const result = await dbPool.query("SELECT id, name, email, created_at FROM public.users WHERE id = $1", [req.user.id]);
 
-    if (user.rows.length === 0) {
-        return res.status(404).json({ msg: 'Usuário não encontrado.' });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ msg: 'Usuário não encontrado.' });
     }
-    res.json(user.rows[0]);
-  } catch (err) {
-    console.error(err.message);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error.message);
     res.status(500).send('Erro de Servidor');
   }
 });
 
-// ROTA PARA CRIAR UMA NOVA META DE DÍVIDA (protegida)
 app.post('/api/debts', authMiddleware, async (req, res) => {
-  const userId = req.user.id;
+  const { id: userId } = req.user;
   const { total_amount, target_date } = req.body;
+
   if (!total_amount || !target_date) {
     return res.status(400).json({ error: 'O valor total e a data alvo são obrigatórios.' });
   }
+
   try {
-    const newDebt = await pool.query(
+    const result = await dbPool.query(
       "INSERT INTO public.debts (total_amount, target_date, user_id) VALUES ($1, $2, $3) RETURNING *",
       [total_amount, target_date, userId]
     );
-    res.status(201).json(newDebt.rows[0]);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Erro ao criar meta de dívida:', error);
     res.status(500).send('Erro no servidor ao tentar criar a meta de dívida.');
   }
 });
 
-// ===== ROTA PARA REGISTRAR UMA NOVA RENDA (GANHO) =====
-// Rota protegida, pois um ganho sempre pertence a um usuário logado e a uma meta específica.
 app.post('/api/incomes', authMiddleware, async (req, res) => {
-  // O ID do usuário vem do token JWT, garantido pelo nosso middleware.
-  const userId = req.user.id;
-
-  // O front-end nos enviará o valor, a fonte (opcional) e a qual meta este ganho pertence (debt_id).
+  const { id: userId } = req.user;
   const { amount, source, debt_id } = req.body;
 
-  // Validação básica
   if (!amount || !debt_id) {
     return res.status(400).json({ error: 'O valor e o ID da meta são obrigatórios.' });
   }
 
   try {
-    // Verificação de segurança crucial!
-    // Antes de inserir o ganho, checamos se a meta (debt_id) realmente pertence ao usuário (userId)
-    // que está fazendo a requisição. Isso impede que um usuário adicione ganhos à meta de outro.
-    const debtCheck = await pool.query(
-      "SELECT id FROM public.debts WHERE id = $1 AND user_id = $2",
-      [debt_id, userId]
-    );
+    const debtCheckResult = await dbPool.query("SELECT id FROM public.debts WHERE id = $1 AND user_id = $2", [debt_id, userId]);
 
-    if (debtCheck.rows.length === 0) {
+    if (debtCheckResult.rows.length === 0) {
       return res.status(403).json({ error: 'Acesso negado. Esta meta não pertence a você.' });
     }
 
-    // Se a checagem passou, insere a nova renda na tabela 'incomes'.
-    const newIncome = await pool.query(
+    const result = await dbPool.query(
       "INSERT INTO public.incomes (amount, source, debt_id) VALUES ($1, $2, $3) RETURNING *",
       [amount, source, debt_id]
     );
-
-    res.status(201).json(newIncome.rows[0]);
-
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Erro ao registrar renda:', error);
     res.status(500).send('Erro no servidor ao tentar registrar renda.');
   }
 });
 
-// ===== ROTA PARA BUSCAR A META ATIVA DO USUÁRIO LOGADO =====
 app.get('/api/debts/my-active-goal', authMiddleware, async (req, res) => {
-  // O ID do usuário vem do token, garantido pelo nosso middleware.
-  const userId = req.user.id;
+  const { id: userId } = req.user;
 
   try {
-    // Faz uma busca na tabela 'debts' filtrando pelo ID do usuário
-    // e pelo status 'active'. Usamos LIMIT 1 porque, por enquanto, cada usuário só pode ter uma meta ativa.
-    const debtResult = await pool.query(
-      "SELECT * FROM public.debts WHERE user_id = $1 AND status = 'active' LIMIT 1",
-      [userId]
-    );
+    const result = await dbPool.query("SELECT * FROM public.debts WHERE user_id = $1 AND status = 'active' LIMIT 1", [userId]);
 
-    // Se a busca não retornar nenhuma linha, significa que este usuário não tem uma meta ativa.
-    // Retorna 'null' para que o front-end saiba que precisa mostrar o formulário de criação.
-    if (debtResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.json(null);
     }
-
-    // Se encontrar uma meta, retorna os dados dela.
-    res.json(debtResult.rows[0]);
-
+    res.json(result.rows[0]);
   } catch (error) {
     console.error('Erro ao buscar meta ativa:', error);
     res.status(500).send('Erro no servidor ao tentar buscar a meta.');
   }
 });
 
-// ===== ROTA PARA BUSCAR TODOS OS GANHOS DE UMA META =====
-// Usa-se ':debtId' como um "parâmetro de rota". Isso significa que a URL
-// terá o ID da dívida, como /api/incomes/8.
 app.get('/api/incomes/:debtId', authMiddleware, async (req, res) => {
-  const userId = req.user.id;
-  // Pega o ID da dívida que veio como parâmetro na URL.
+  const { id: userId } = req.user;
   const { debtId } = req.params;
 
   try {
-    // A mesma verificação de segurança de antes: esta meta pertence a este usuário?
-    const debtCheck = await pool.query(
-      "SELECT id FROM public.debts WHERE id = $1 AND user_id = $2",
-      [debtId, userId]
-    );
+    const debtCheckResult = await dbPool.query("SELECT id FROM public.debts WHERE id = $1 AND user_id = $2", [debtId, userId]);
 
-    if (debtCheck.rows.length === 0) {
+    if (debtCheckResult.rows.length === 0) {
       return res.status(403).json({ error: 'Acesso negado. Esta meta não pertence a você.' });
     }
 
-    // Se a checagem passar, busca todos os ganhos associados a essa meta,
-    // ordenados do mais recente para o mais antigo.
-    const incomesResult = await pool.query(
-      "SELECT * FROM public.incomes WHERE debt_id = $1 ORDER BY created_at DESC",
-      [debtId]
-    );
-
-    // Retornamos um array (uma lista) com todos os ganhos encontrados.
-    res.json(incomesResult.rows);
-
+    const result = await dbPool.query("SELECT * FROM public.incomes WHERE debt_id = $1 ORDER BY created_at DESC", [debtId]);
+    res.json(result.rows);
   } catch (error) {
     console.error('Erro ao buscar rendas:', error);
     res.status(500).send('Erro no servidor.');
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
