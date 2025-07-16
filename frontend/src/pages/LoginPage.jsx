@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
-import api from '../api'; // Correto! Já está usando nossa API central.
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 
 function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -17,22 +14,12 @@ function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // ===== A ÚNICA MUDANÇA É AQUI =====
-      // Corrigimos o endpoint para chamar a rota de login
-      const response = await api.post('/users/login', formData);
-
-      const { token } = response.data;
-
-      console.log('Token recebido do login:', token);
+      await login(formData.email, formData.password);
       alert('Login realizado com sucesso!');
-
-      localStorage.setItem('token', token);
-
       navigate('/');
-
     } catch (error) {
-      console.error('Erro no login:', error.response.data);
-      alert(`Erro no login: ${error.response.data.error || 'Credenciais inválidas'}`);
+      alert('Erro no login: Credenciais inválidas ou problema no servidor.');
+      console.error(error);
     }
   };
 
@@ -42,25 +29,11 @@ function LoginPage() {
       <form onSubmit={handleSubmit}>
         <div>
           <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
+          <input id="email" name="email" type="email" onChange={handleChange} value={formData.email} required />
         </div>
         <div>
           <label htmlFor="password">Senha:</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
+          <input id="password" name="password" type="password" onChange={handleChange} value={formData.password} required />
         </div>
         <button type="submit">Entrar</button>
       </form>

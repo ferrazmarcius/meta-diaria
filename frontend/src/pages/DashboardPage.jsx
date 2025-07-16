@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import api from '../api'; // Usando nossa instância centralizada
+import api from '../api';
 import DebtGoalForm from '../components/DebtGoalForm';
 import IncomeForm from '../components/IncomeForm';
 
@@ -21,7 +21,6 @@ function DashboardPage() {
       const config = { headers: { 'Authorization': `Bearer ${token}` } };
 
       try {
-        // As 3 linhas abaixo foram atualizadas para usar 'api'
         const [profileResponse, debtGoalResponse] = await Promise.all([
           api.get('/profile', config),
           api.get('/debts/my-active-goal', config)
@@ -48,10 +47,25 @@ function DashboardPage() {
     setIncomes([newIncome, ...incomes]);
   };
 
+  // ESTE BLOCO DE CÓDIGO É O QUE CALCULA O PROGRESSO
+  // Ele provavelmente estava faltando ou incompleto no seu arquivo.
+  const { totalEarned, remainingDebt, progressPercentage } = useMemo(() => {
+    if (!debtGoal) return { totalEarned: 0, remainingDebt: 0, progressPercentage: 0 };
+
+    const totalEarned = incomes.reduce((sum, income) => sum + parseFloat(income.amount), 0);
+    const remainingDebt = parseFloat(debtGoal.total_amount) - totalEarned;
+    
+    // Evita divisão por zero se a meta for 0
+    const progressPercentage = debtGoal.total_amount > 0 
+      ? (totalEarned / parseFloat(debtGoal.total_amount)) * 100 
+      : 0;
+
+    return { totalEarned, remainingDebt, progressPercentage };
+  }, [incomes, debtGoal]);
+
   const handleGoalSet = (newGoal) => {
-    // Recarrega a página para buscar todos os novos dados.
-    // Uma melhoria futura seria atualizar o estado sem recarregar.
-    window.location.reload();
+    // Atualiza o estado sem precisar recarregar a página
+    setDebtGoal(newGoal);
   };
 
   if (isLoading) {
